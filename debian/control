@@ -1,0 +1,30 @@
+Source: mitmproxy
+Section: net
+Priority: optional
+Maintainer: Dario Griffo <dariogriffo@gmail.com>
+Build-Depends: debhelper-compat (= 13), wget, ca-certificates
+Standards-Version: 4.6.2
+Homepage: https://mitmproxy.org
+Rules-Requires-Root: no
+
+Package: mitmproxy
+Architecture: amd64 arm64
+Depends: ${misc:Depends}
+Description: interactive TLS-capable intercepting HTTP proxy
+ mitmproxy is a free and open source interactive HTTPS proxy for penetration
+ testers and software developers. It intercepts, inspects, modifies and
+ replays HTTP/1, HTTP/2, HTTP/3, WebSocket and raw TCP/UDP traffic, generating
+ TLS interception certificates on the fly.
+ .
+ This package installs three commands:
+  - mitmproxy: interactive console interface for inspecting and editing
+    traffic flows on the fly
+  - mitmdump: command-line version, "tcpdump for HTTP"
+  - mitmweb: web-based interface served on http://127.0.0.1:8081
+ .
+ Regular, transparent, reverse, upstream, SOCKS5, WireGuard and local capture
+ modes are supported, and traffic can be scripted with Python addons.
+ .
+ These are upstream's self-contained standalone builds, which bundle their own
+ Python interpreter and OpenSSL, so no Python packages are required. Addon
+ scripts can only import modules shipped inside the bundle.

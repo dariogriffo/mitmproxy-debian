@@ -1,0 +1,56 @@
+#!/usr/bin/make -f
+DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+MITMPROXY_VERSION := $(shell dpkg-parsechangelog -S Version | sed 's/[-~].*//')
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+
+# Upstream does not attach binaries to its GitHub releases; the standalone
+# Linux builds live on downloads.mitmproxy.org, keyed by the bare version and
+# named after the kernel architecture spelling (x86_64, aarch64). The tarball
+# holds mitmproxy, mitmdump and mitmweb with no top-level directory.
+override_dh_auto_build:
+	@arch="$(DEB_HOST_ARCH)"; \
+	case "$$arch" in \
+		amd64) up_arch=x86_64 ;; \
+		arm64) up_arch=aarch64 ;; \
+		*) echo "Unsupported architecture: $$arch"; exit 1 ;; \
+	esac; \
+	MP_RELEASE="mitmproxy-$(MITMPROXY_VERSION)-linux-$$up_arch"; \
+	echo "Downloading $$MP_RELEASE..."; \
+	wget -q "https://downloads.mitmproxy.org/$(MITMPROXY_VERSION)/$$MP_RELEASE.tar.gz"; \
+	rm -rf "$$MP_RELEASE"; \
+	mkdir -p "$$MP_RELEASE"; \
+	tar -xf "$$MP_RELEASE.tar.gz" -C "$$MP_RELEASE"; \
+	rm -f "$$MP_RELEASE.tar.gz"; \
+	for bin in mitmproxy mitmdump mitmweb; do \
+		if [ ! -f "$$MP_RELEASE/$$bin" ]; then \
+			echo "Unexpected tarball layout (missing $$bin)"; exit 1; \
+		fi; \
+	done; \
+	echo "$$MP_RELEASE" > .mitmproxy_release_name
+
+override_dh_auto_install:
+	@MP_RELEASE=$$(cat .mitmproxy_release_name); \
+	for bin in mitmproxy mitmdump mitmweb; do \
+		install -D -m 755 "$$MP_RELEASE/$$bin" "debian/mitmproxy/usr/bin/$$bin"; \
+	done
+
+override_dh_auto_test:
+
+override_dh_auto_clean:
+	@if [ -f .mitmproxy_release_name ]; then \
+		MP_RELEASE=$$(cat .mitmproxy_release_name); \
+		rm -rf "$$MP_RELEASE" .mitmproxy_release_name || true; \
+	fi
+
+# The binaries are PyInstaller one-file executables: the Python payload is
+# appended to the ELF image, so stripping them would destroy it. They bundle
+# every library they need, hence no shlibdeps either.
+override_dh_strip:
+
+override_dh_dwz:
+
+override_dh_shlibdeps:
